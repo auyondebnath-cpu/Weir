@@ -36,4 +36,16 @@ public class Weir {
         bytes = Files.readAllBytes(Paths.get(path));
         return new String(bytes, StandardCharsets.UTF_8);
     }
+
+    private static void runPrompt() throws IOException{
+        InputStreamReader input = new InputStreamReader(System.in);
+        BufferedReader reader = new BufferedReader(input);
+
+        for( ; ; ){
+            System.err.print("> ");
+            String line = reader.readLine();
+            if(line == null) break;
+            run(line);
+        }
+    }
 }
