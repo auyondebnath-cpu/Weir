@@ -19,8 +19,10 @@ public class Weir {
 
         StringBuilder combined = new StringBuilder();
         for(String path: args){
-            byte[] bytes = Files.readAllBytes(Paths.get(path));
-            combined.append(new String(bytes, StandardCharsets.UTF_8));
+            if (!path.endsWith(".weir")) {
+                System.err.println("Warning: " + path + " does not have a .weir extension.");
+            }
+            combined.append(runFile(path));
             combined.append("\n");
         }
 
@@ -30,7 +32,8 @@ public class Weir {
     }
     
     public static String runFile(String path) throws IOException{
-        byte[] bytes = Files.readAllBytes(Paths.get(path));
+        byte[] bytes;
+        bytes = Files.readAllBytes(Paths.get(path));
         return new String(bytes, StandardCharsets.UTF_8);
     }
 }
