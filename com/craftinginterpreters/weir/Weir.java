@@ -28,5 +28,9 @@ public class Weir {
 
         if (hadError) System.exit(65);
     }
-
+    
+    public static String runFile(String path) throws IOException{
+        byte[] bytes = Files.readAllBytes(Paths.get(path));
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
 }
