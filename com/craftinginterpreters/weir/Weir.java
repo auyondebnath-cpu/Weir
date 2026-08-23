@@ -22,7 +22,7 @@ public class Weir {
             if (!path.endsWith(".weir")) {
                 System.err.println("Warning: " + path + " does not have a .weir extension.");
             }
-            combined.append(runFile(path));
+            combined.append(readFile(path));
             combined.append("\n");
         }
 
@@ -31,7 +31,7 @@ public class Weir {
         if (hadError) System.exit(65);
     }
     
-    public static String runFile(String path) throws IOException{
+    public static String readFile(String path) throws IOException{
         byte[] bytes;
         bytes = Files.readAllBytes(Paths.get(path));
         return new String(bytes, StandardCharsets.UTF_8);
@@ -42,7 +42,7 @@ public class Weir {
         BufferedReader reader = new BufferedReader(input);
 
         for( ; ; ){
-            System.err.print("> ");
+            System.out.print("> ");
             String line = reader.readLine();
             if(line == null) break;
             run(line);
