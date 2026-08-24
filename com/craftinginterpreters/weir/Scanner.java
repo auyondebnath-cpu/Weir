@@ -40,6 +40,7 @@ class Scanner {
             case '-': addToken(MINUS); break;
             case ';': addToken(SEMICOLON); break;
             case '*': addToken(STAR); break;
+            case '.': addToken(DOT); break;
             case '!': addToken(match('=')? BANG_EQUAL : BANG); break;
             case '<': addToken(match('=')? LESS_EQUAL : LESS); break;
             case '=': addToken(match('=')? EQUAL_EQUAL : EQUAL); break;
@@ -59,6 +60,7 @@ class Scanner {
             case '\n':
                 line++;
                 break;
+            case '"': string(); break;
             default: Weir.error(line, "Unexpected character"); break; 
         }
     }
@@ -87,5 +89,22 @@ class Scanner {
     private char peek(){
         if(isAtEnd()) return '\0';
         return source.charAt(current);
+    }
+
+    private void string(){
+        while(peek() != '"' && !isAtEnd()){
+            if(peek() == '\n') line++;
+            advance();
+        }
+
+        if(isAtEnd()){
+            Weir.error(line, "Unterminated String");
+            return;
+        }
+
+        advance();
+
+        String value = source.substring(start+1, current-1);
+        addToken(STRING, value);
     }
 }
