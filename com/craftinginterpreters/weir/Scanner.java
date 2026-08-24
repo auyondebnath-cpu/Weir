@@ -53,6 +53,12 @@ class Scanner {
                 addToken(SLASH);
             }
             break;
+            case ' ':
+            case '\r': 
+            case '\t': break;
+            case '\n':
+                line++;
+                break;
             default: Weir.error(line, "Unexpected character"); break; 
         }
     }
@@ -76,5 +82,10 @@ class Scanner {
 
         current++;
         return true;
+    }
+
+    private char peek(){
+        if(isAtEnd()) return '\0';
+        return source.charAt(current);
     }
 }
