@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 class Scanner {
     private final String source;
+    private final String fileName;
     private final List<Token> tokens = new ArrayList<>();
     private int start = 0;
     private int current = 0;
@@ -14,8 +15,9 @@ class Scanner {
 
     private static final Map<String, TokenType> keywords;
 
-    Scanner(String source){
+    Scanner(String source, String fileName){
         this.source = source;
+        this.fileName = fileName;
     }
 
     List<Token> scanTokens(){
@@ -71,7 +73,7 @@ class Scanner {
             } else if(isAlpha(c)){
                 identifier();
             } else{
-                Weir.error(line, "Unexpected character"); break;
+                Weir.error(line, fileName, "Unexpected character"); break;
             }   
         }
     }
@@ -133,7 +135,7 @@ class Scanner {
         }
 
         if(isAtEnd()){
-            Weir.error(line, "Unterminated String");
+            Weir.error(line, fileName, "Unterminated String");
             return;
         }
 
