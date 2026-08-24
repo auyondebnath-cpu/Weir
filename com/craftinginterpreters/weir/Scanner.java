@@ -89,6 +89,11 @@ class Scanner {
         keywords.put("return", RETURN);
         keywords.put("true", TRUE);
         keywords.put("while", WHILE);
+        keywords.put("river", RIVER);
+        keywords.put("dam", DAM);
+        keywords.put("flows", FLOWS);
+        keywords.put("root", ROOT);
+        keywords.put("when", WHEN);
     }
 
     private char advance(){
