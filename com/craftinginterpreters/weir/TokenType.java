@@ -19,7 +19,7 @@ enum TokenType{
     PRINT, RETURN, TRUE, WHILE,
 
     //Weir specific keywords for river system
-    RIVER, ROOT, DAM, FLOWS, WHEN,
+    RIVER, ROOT, DAM, FLOWS, WHEN, INFLOW, LEVEL, DEFAULT, RAINFALL,
 
     EOF
 }

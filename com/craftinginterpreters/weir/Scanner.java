@@ -94,6 +94,10 @@ class Scanner {
         keywords.put("flows", FLOWS);
         keywords.put("root", ROOT);
         keywords.put("when", WHEN);
+        keywords.put("inflow", INFLOW);
+        keywords.put("level", LEVEL);
+        keywords.put("default", DEFAULT);
+        keywords.put("rainfall", RAINFALL);
     }
 
     private char advance(){
