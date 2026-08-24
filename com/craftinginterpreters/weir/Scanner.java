@@ -1,8 +1,8 @@
 package com.craftinginterpreters.weir;
 
+import static com.craftinginterpreters.weir.TokenType.*;
 import java.util.ArrayList;
 import java.util.List;
-
 class Scanner {
     private final String source;
     private final List<Token> tokens = new ArrayList();
@@ -26,5 +26,33 @@ class Scanner {
 
     private boolean isAtEnd(){
         return current >= source.length();
+    }
+
+    private void scanToken(){
+        char c = advance();
+        switch(c){
+            case '(': addToken(LEFT_PAREN); break;
+            case ')': addToken(RIGHT_PAREN); break;
+            case '{': addToken(LEFT_BRACE); break;
+            case '}': addToken(RIGHT_BRACE); break;
+            case ',': addToken(COMMA); break;
+            case '+': addToken(PLUS); break;
+            case '-': addToken(MINUS); break;
+            case ';': addToken(SEMICOLON); break;
+            case '*': addToken(STAR); break; 
+        }
+    }
+
+    private char advance(){
+        return source.charAt(current++);
+    }
+
+    private void addToken(TokenType type){
+        addToken(type, null);
+    }
+
+    private void addToken(TokenType type, Object literal){
+        String text = source.substring(start, current);
+        tokens.add(new Token(type, text, literal, line));
     }
 }
