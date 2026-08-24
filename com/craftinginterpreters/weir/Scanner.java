@@ -39,7 +39,21 @@ class Scanner {
             case '+': addToken(PLUS); break;
             case '-': addToken(MINUS); break;
             case ';': addToken(SEMICOLON); break;
-            case '*': addToken(STAR); break; 
+            case '*': addToken(STAR); break;
+            case '!': addToken(match('=')? BANG_EQUAL : BANG); break;
+            case '<': addToken(match('=')? LESS_EQUAL : LESS); break;
+            case '=': addToken(match('=')? EQUAL_EQUAL : EQUAL); break;
+            case '>': addToken(match('=')? GREATER_EQUAL: GREATER); break;
+            case '/': 
+            if(match('/')){
+                while(peek()!= '\n' && !isAtEnd()){
+                    advance();
+                }
+            } else{
+                addToken(SLASH);
+            }
+            break;
+            default: Weir.error(line, "Unexpected character"); break; 
         }
     }
 
@@ -54,5 +68,13 @@ class Scanner {
     private void addToken(TokenType type, Object literal){
         String text = source.substring(start, current);
         tokens.add(new Token(type, text, literal, line));
+    }
+
+    private boolean match(char expected){
+        if(isAtEnd()) return false;
+        if(source.charAt(current)!= expected) return false;
+
+        current++;
+        return true;
     }
 }
