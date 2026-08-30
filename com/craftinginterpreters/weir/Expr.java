@@ -1,4 +1,4 @@
-package com.craftinginterpreters.lox;
+package com.craftinginterpreters.weir;
 
 abstract class Expr{
     static class Binary extends Expr{
