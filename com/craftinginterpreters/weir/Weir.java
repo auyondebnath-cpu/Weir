@@ -50,9 +50,12 @@ public class Weir {
         Scanner scanner = new Scanner(source, fileName);
         List<Token> tokens = scanner.scanTokens();
 
-        for(Token token: tokens){
-            System.out.println(token);
-        }
+        Parser parser = new Parser(tokens);
+        Expr expression = parser.parse();
+
+        if(hadError) return;
+
+        System.out.println(new AstPrinter().print(expression));
     }
 
     static void error(int line, String fileName, String message){
@@ -62,5 +65,13 @@ public class Weir {
     private static void report(int line, String fileName, String where, String message){
         System.err.println("[" + fileName + ":"+ "line " + line + "] Error" + where + ": " + message);
         hadError = true;
+    }
+
+    static void error(Token token, String message) {
+        if (token.type == TokenType.EOF) {
+            report(token.line, token.fileName, " at end", message);
+        } else {
+            report(token.line, token.fileName, " at '" + token.lexeme + "'", message);
+        }
     }
 }
