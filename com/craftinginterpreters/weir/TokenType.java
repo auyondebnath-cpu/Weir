@@ -3,7 +3,7 @@ package com.craftinginterpreters.weir;
 enum TokenType{
     //Single Character tokens
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
-    COMMA, MINUS, PLUS, SEMICOLON, STAR, SLASH, DOT,
+    COMMA, MINUS, PLUS, SEMICOLON, STAR, SLASH, DOT, COLON,
     
     //One or two character tokens
     BANG, BANG_EQUAL,

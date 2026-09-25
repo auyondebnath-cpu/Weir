@@ -17,7 +17,19 @@ public class GenerateAST {
             "Binary : Expr left, Token operator, Expr right",
             "Grouping : Expr expression",
             "Literal : Object value",
-            "Unary : Token operator, Expr right"
+            "Unary : Token operator, Expr right",
+            "Variable : Token name",
+            "Flows : Expr source, Token target"
+        ));
+
+        defineAST(outputDir, "Stmt", Arrays.asList(
+            "Root : Token name, Expr size",
+            "RiverDecl : Token name, Expr value",
+            "Dam : Token name, List<Stmt> rules, Stmt defaultRule",
+            "DamRule : Expr condition, Expr result",
+            "Connect : Token source, Token target",
+            "Print : Expr expression",
+            "Expression : Expr expression"
         ));
     }
 

@@ -51,6 +51,7 @@ class Scanner {
             case '<': addToken(match('=')? LESS_EQUAL : LESS); break;
             case '=': addToken(match('=')? EQUAL_EQUAL : EQUAL); break;
             case '>': addToken(match('=')? GREATER_EQUAL: GREATER); break;
+            case ':': addToken(COLON); break;
             case '/': 
             if(match('/')){
                 while(peek()!= '\n' && !isAtEnd()){
