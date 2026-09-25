@@ -51,11 +51,11 @@ public class Weir {
         List<Token> tokens = scanner.scanTokens();
 
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
+        List<Stmt> statements = parser.parse();
 
         if(hadError) return;
 
-        System.out.println(new AstPrinter().print(expression));
+        System.out.println(new AstPrinter().print(statements));
     }
 
     static void error(int line, String fileName, String message){

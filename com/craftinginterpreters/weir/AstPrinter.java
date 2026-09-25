@@ -1,7 +1,5 @@
 package com.craftinginterpreters.weir;
-
 import java.util.List;
-
 
 class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
@@ -21,13 +19,15 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitBinaryExpr(Expr.Binary expr) {
-        return parenthesize(expr.operator.lexeme, expr.left, expr.right);
+        String left = maybeWrap(expr.left, expr.operator.lexeme);
+        String right = maybeWrap(expr.right, expr.operator.lexeme);
+        return left + " " + expr.operator.lexeme + " " + right;
     }
 
 
     @Override
     public String visitGroupingExpr(Expr.Grouping expr) {
-        return parenthesize("group", expr.expression);
+        return "(" + expr.expression.accept(this) + ")";
     }
 
 
@@ -40,7 +40,8 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitUnaryExpr(Expr.Unary expr) {
-        return parenthesize(expr.operator.lexeme, expr.right);
+        String operand = maybeWrap(expr.right, expr.operator.lexeme);
+        return expr.operator.lexeme + operand;
     }
 
 
@@ -52,43 +53,69 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
     @Override
     public String visitFlowsExpr(Expr.Flows expr) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("(flows ");
-        builder.append(expr.source.accept(this));
-        builder.append(" ");
-        builder.append(expr.target.lexeme);
-        builder.append(")");
-        return builder.toString();
+        String source = maybeWrap(expr.source, "flows");
+        return source + " flows " + expr.target.lexeme;
+    }
+
+
+    // Wraps `child` in parens only if it is itself a Binary/Flows expression
+    // with a DIFFERENT precedence level than the parent operator. Same-precedence
+    // chains (e.g. a + b + c) and simple leaves (Literal/Variable) stay unwrapped.
+    private String maybeWrap(Expr child, String parentOperator) {
+        String printed = child.accept(this);
+
+        if (child instanceof Expr.Binary) {
+            String childOperator = ((Expr.Binary) child).operator.lexeme;
+            if (precedence(childOperator) != precedence(parentOperator)) {
+                return "(" + printed + ")";
+            }
+            return printed;
+        }
+
+        if (child instanceof Expr.Flows) {
+            return "(" + printed + ")";
+        }
+
+        return printed;
+    }
+
+
+    private int precedence(String operator) {
+        switch (operator) {
+            case "==": case "!=": return 1;
+            case ">": case ">=": case "<": case "<=": return 2;
+            case "+": case "-": return 3;
+            case "*": case "/": return 4;
+            default: return 0;
+        }
     }
 
 
     @Override
     public String visitRootStmt(Stmt.Root stmt) {
         StringBuilder builder = new StringBuilder();
-        builder.append("(root ").append(stmt.name.lexeme);
+        builder.append("root ").append(stmt.name.lexeme);
         if (stmt.size != null) {
             builder.append(" ").append(stmt.size.accept(this));
         }
-        builder.append(")");
         return builder.toString();
     }
 
 
     @Override
     public String visitRiverDeclStmt(Stmt.RiverDecl stmt) {
-        return "(river " + stmt.name.lexeme + " = " + stmt.value.accept(this) + ")";
+        return "river " + stmt.name.lexeme + " = " + stmt.value.accept(this);
     }
 
 
     @Override
     public String visitDamStmt(Stmt.Dam stmt) {
         StringBuilder builder = new StringBuilder();
-        builder.append("(dam ").append(stmt.name.lexeme).append(" ");
+        builder.append("dam ").append(stmt.name.lexeme).append(" { ");
         for (Stmt rule : stmt.rules) {
-            builder.append(rule.accept(this)).append(" ");
+            builder.append(rule.accept(this)).append("; ");
         }
-        builder.append(stmt.defaultRule.accept(this));
-        builder.append(")");
+        builder.append(stmt.defaultRule.accept(this)).append("; }");
         return builder.toString();
     }
 
@@ -96,43 +123,27 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     @Override
     public String visitDamRuleStmt(Stmt.DamRule stmt) {
         if (stmt.condition == null) {
-            return "(default " + stmt.result.accept(this) + ")";
+            return "default: " + stmt.result.accept(this);
         }
-        return "(when " + stmt.condition.accept(this) + " " + stmt.result.accept(this) + ")";
+        return "when " + stmt.condition.accept(this) + ": " + stmt.result.accept(this);
     }
 
 
     @Override
     public String visitConnectStmt(Stmt.Connect stmt) {
-        return "(flows " + stmt.source.lexeme + " " + stmt.target.lexeme + ")";
+        return stmt.source.lexeme + " flows " + stmt.target.lexeme;
     }
 
 
     @Override
     public String visitPrintStmt(Stmt.Print stmt) {
-        return "(print " + stmt.expression.accept(this) + ")";
+        return "print " + stmt.expression.accept(this);
     }
 
 
     @Override
     public String visitExpressionStmt(Stmt.Expression stmt) {
         return stmt.expression.accept(this);
-    }
-
-
-    private String parenthesize (String name, Expr... exprs){
-        StringBuilder builder = new StringBuilder();
-
-
-        builder.append("(").append(name);
-        for(Expr expr:exprs){
-            builder.append(" ");
-            builder.append(expr.accept(this));
-        }
-        builder.append(")");
-
-
-        return builder.toString();
     }
 
 
