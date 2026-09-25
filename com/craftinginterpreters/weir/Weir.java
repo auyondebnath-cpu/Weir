@@ -16,17 +16,40 @@ public class Weir {
             return;
         }
 
-        for(String path: args){
+        if (args.length == 1) {
+            String path = args[0];
             if (!path.endsWith(".weir")) {
                 System.err.println("Warning: " + path + " does not have a .weir extension.");
             }
             String source = readFile(path);
             run(source, path);
+        } else {
+            runFiles(args);
         }
 
         if (hadError) System.exit(65);
     }
-    
+
+    private static void runFiles(String[] paths) throws IOException {
+        StringBuilder combinedSource = new StringBuilder();
+        StringBuilder combinedName = new StringBuilder();
+
+        for (int i = 0; i < paths.length; i++) {
+            String path = paths[i];
+            if (!path.endsWith(".weir")) {
+                System.err.println("Warning: " + path + " does not have a .weir extension.");
+            }
+
+            combinedSource.append(readFile(path));
+            combinedSource.append("\n");
+
+            if (i > 0) combinedName.append("+");
+            combinedName.append(path);
+        }
+
+        run(combinedSource.toString(), combinedName.toString());
+    }
+
     public static String readFile(String path) throws IOException{
         byte[] bytes;
         bytes = Files.readAllBytes(Paths.get(path));
