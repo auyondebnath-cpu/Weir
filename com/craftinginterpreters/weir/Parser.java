@@ -33,12 +33,19 @@ class Parser {
     private Stmt riverDecl() {
         if (match(ROOT)) {
             Token name = consume(IDENTIFIER, "Expect river name after 'root'.");
-            Expr size = null;
-            if (check(NUMBER)) {
-                size = new Expr.Literal(advance().literal);
+
+            Token first = null;
+            Token spread = null;
+            Token magnitude = null;
+
+            if (check(F)) {
+                first = flowField(F, "f");
+                spread = flowField(S, "s");
+                magnitude = flowField(M, "m");
             }
+
             consume(SEMICOLON, "Expect ';' after root declaration.");
-            return new Stmt.Root(name, size);
+            return new Stmt.Root(name, first, spread, magnitude);
         }
 
         consume(RIVER, "Expect 'root' or 'river'.");
@@ -47,6 +54,15 @@ class Parser {
         Expr value = flowExpr();
         consume(SEMICOLON, "Expect ';' after river declaration.");
         return new Stmt.RiverDecl(name, value);
+    }
+
+    // Parses one labeled field of a flow literal, e.g. "f: 1", "s: 1", "m: 4".
+    // label is the expected TokenType (F, S, or M) and labelText is used only
+    // for the error message.
+    private Token flowField(TokenType label, String labelText) {
+        consume(label, "Expect '" + labelText + ":' in flow literal.");
+        consume(COLON, "Expect ':' after '" + labelText + "'.");
+        return consume(NUMBER, "Expect number after '" + labelText + ":'.");
     }
 
     private Expr flowExpr() {
@@ -181,7 +197,6 @@ class Parser {
         return tokens.get(current + 1).type == type;
     }
 
-
     private Token advance(){
         if(!isAtEnd()) current++;
         return previous();
@@ -266,13 +281,11 @@ class Parser {
         throw error(peek(), "Expect expression");
     }
 
-
     private Token consume(TokenType type, String message){
         if(check(type)) return advance();
 
         throw error(peek(), message);
     }
-
 
     private ParseError error (Token token, String message){
         Weir.error(token, message);

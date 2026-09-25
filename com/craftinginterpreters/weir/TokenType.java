@@ -21,6 +21,9 @@ enum TokenType{
     //Weir specific keywords for river system
     RIVER, ROOT, DAM, FLOWS, WHEN, INFLOW, LEVEL, DEFAULT, RAINFALL,
 
+    //Weir flow literal labels: f: (first day) s: (spread) m: (magnitude)
+    F, S, M,
+
     EOF
 }
 

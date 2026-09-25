@@ -1,0 +1,32 @@
+// canberra.weir
+// Models the Canberra river system described in the assignment brief.
+// Root rivers: googong, jerrabombarra, uppermolongolo
+// googong -> dam1 -> queanbeyan
+// centralmolongolo = queanbeyan + uppermolongolo + jerrabombarra
+// centralmolongolo -> dam2 -> lowermolongolo (system output)
+
+root googong f: 1 s: 1 m: 50;
+root jerrabombarra f: 1 s: 1 m: 30;
+root uppermolongolo f: 1 s: 1 m: 40;
+
+dam dam1 {
+    when level > 100: inflow * 0.5;
+    when level > 50: inflow * 0.8;
+    default: inflow;
+}
+
+googong flows dam1;
+dam1 flows queanbeyan;
+
+river centralmolongolo = queanbeyan + uppermolongolo + jerrabombarra;
+
+dam dam2 {
+    when level > 200: inflow * 0.3;
+    when level > 100: inflow * 0.7;
+    default: inflow;
+}
+
+centralmolongolo flows dam2;
+dam2 flows lowermolongolo;
+
+print lowermolongolo;

@@ -13,9 +13,11 @@ abstract class Stmt {
     R visitExpressionStmt(Expression stmt);
   }
   static class Root extends Stmt {
-    Root(Token name, Expr size) {
+    Root(Token name, Token first, Token spread, Token magnitude) {
       this.name = name;
-      this.size = size;
+      this.first = first;
+      this.spread = spread;
+      this.magnitude = magnitude;
     }
 
     @Override
@@ -24,7 +26,9 @@ abstract class Stmt {
     }
 
     final Token name;
-    final Expr size;
+    final Token first;
+    final Token spread;
+    final Token magnitude;
   }
 
   static class RiverDecl extends Stmt {

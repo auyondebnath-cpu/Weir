@@ -101,6 +101,9 @@ class Scanner {
         keywords.put("level", LEVEL);
         keywords.put("default", DEFAULT);
         keywords.put("rainfall", RAINFALL);
+        keywords.put("f", F);
+        keywords.put("s", S);
+        keywords.put("m", M);
     }
 
     private char advance(){

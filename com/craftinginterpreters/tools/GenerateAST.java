@@ -23,7 +23,7 @@ public class GenerateAST {
         ));
 
         defineAST(outputDir, "Stmt", Arrays.asList(
-            "Root : Token name, Expr size",
+            "Root : Token name, Token first, Token spread, Token magnitude",
             "RiverDecl : Token name, Expr value",
             "Dam : Token name, List<Stmt> rules, Stmt defaultRule",
             "DamRule : Expr condition, Expr result",
