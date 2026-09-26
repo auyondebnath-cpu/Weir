@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-
 public class Weir {
     static boolean hadError = false;
 
@@ -30,6 +29,8 @@ public class Weir {
         if (hadError) System.exit(65);
     }
 
+    // Concatenates multiple files into one source so declarations in one
+    // file are visible to statements in another.
     private static void runFiles(String[] paths) throws IOException {
         StringBuilder combinedSource = new StringBuilder();
         StringBuilder combinedName = new StringBuilder();
@@ -50,6 +51,7 @@ public class Weir {
         run(combinedSource.toString(), combinedName.toString());
     }
 
+    // Explicit UTF-8 so decoding is consistent across platforms.
     public static String readFile(String path) throws IOException{
         byte[] bytes;
         bytes = Files.readAllBytes(Paths.get(path));

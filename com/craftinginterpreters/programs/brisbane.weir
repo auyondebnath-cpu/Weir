@@ -1,0 +1,45 @@
+// brisbane.weir
+// Models a simplified version of the real Brisbane River system, Queensland.
+// Sourced from public descriptions of the catchment: the Upper Brisbane River
+// is fed by Cooyar, Emu, and Cressbrook Creeks from the west, while the
+// Stanley River flows south through Somerset Dam before joining the system
+// at Wivenhoe Dam. Downstream, the Lockyer Creek and Bremer River join the
+// Brisbane River in its middle and lower reaches before reaching Moreton Bay.
+//
+// Root rivers: cooyar, emu, cressbrook, stanleyriver, lockyercreek, bremerriver
+// stanleyriver -> somersetdam -> (joins upper Brisbane combination)
+// upperbrisbane = cooyar + emu + cressbrook + somerset dam output
+// upperbrisbane -> wivenhoedam -> midbrisbane
+// midbrisbane + lockyercreek + bremerriver = lowerbrisbane (system output)
+
+root cooyar f: 1 s: 2 m: 20;
+root emu f: 1 s: 2 m: 15;
+root cressbrook f: 1 s: 2 m: 18;
+root stanleyriver f: 1 s: 3 m: 35;
+root lockyercreek f: 2 s: 2 m: 12;
+root bremerriver f: 2 s: 3 m: 25;
+
+dam somersetdam {
+    when level > 150: inflow * 0.4;
+    when level > 80: inflow * 0.75;
+    default: inflow;
+}
+
+stanleyriver flows somersetdam;
+somersetdam flows upperstanley;
+
+river upperbrisbane = cooyar + emu + cressbrook + upperstanley;
+
+dam wivenhoedam {
+    when level > 300: inflow * 0.2;
+    when level > 200: inflow * 0.6;
+    when level > 100: inflow * 0.9;
+    default: inflow;
+}
+
+upperbrisbane flows wivenhoedam;
+wivenhoedam flows midbrisbane;
+
+river lowerbrisbane = midbrisbane + lockyercreek + bremerriver;
+
+print lowerbrisbane;

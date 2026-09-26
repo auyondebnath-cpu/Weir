@@ -1,0 +1,47 @@
+// sluicegate.weir
+// A dedicated example demonstrating Weir's dam syntax in depth, independent
+// of any real-world river system. Exercises multiple "when level" tiers per
+// dam, every comparison operator supported by the grammar's condition rule
+// (>, >=, <, <=, ==, !=), and the required "default" fallback rule.
+//
+// Models three dams with different release behaviours, matching the
+// assignment brief's suggestion that dams should show sensible no-flow,
+// half-flow, and full-flow behaviour depending on their accumulated level.
+
+root inflowsource f: 1 s: 1 m: 100;
+
+// noflowdam: blocks all water once the level is high, otherwise passes
+// everything through untouched.
+dam noflowdam {
+    when level >= 200: inflow * 0;
+    default: inflow;
+}
+
+// halfflowdam: releases progressively less water as its level rises,
+// stepping down through several tiers before settling on a default.
+dam halfflowdam {
+    when level > 150: inflow * 0.25;
+    when level > 100: inflow * 0.5;
+    when level > 50: inflow * 0.75;
+    default: inflow;
+}
+
+// preciselevel: demonstrates the remaining comparison operators (<, ==, !=)
+// which are not exercised by the other example programs.
+dam preciselevel {
+    when level < 10: inflow * 1.0;
+    when level == 50: inflow * 0.5;
+    when level != 0: inflow * 0.9;
+    default: inflow;
+}
+
+inflowsource flows noflowdam;
+noflowdam flows stagetwo;
+
+stagetwo flows halfflowdam;
+halfflowdam flows stagethree;
+
+stagethree flows preciselevel;
+preciselevel flows finaloutput;
+
+print finaloutput;
