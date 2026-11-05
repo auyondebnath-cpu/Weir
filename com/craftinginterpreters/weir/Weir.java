@@ -1,4 +1,5 @@
 package com.craftinginterpreters.weir;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -6,11 +7,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-public class Weir {
-    static boolean hadError = false;
 
-    public static void main (String[] args) throws IOException{
-        if(args.length == 0){
+public class Weir {
+    private static final Interpreter interpreter = new Interpreter();
+    static boolean hadError = false;
+    static boolean hadRuntimeError = false;
+
+    public static void main(String[] args) throws IOException {
+        if (args.length == 0) {
             runPrompt();
             return;
         }
@@ -27,6 +31,7 @@ public class Weir {
         }
 
         if (hadError) System.exit(65);
+        if (hadRuntimeError) System.exit(70);
     }
 
     // Concatenates multiple files into one source so declarations in one
@@ -52,43 +57,48 @@ public class Weir {
     }
 
     // Explicit UTF-8 so decoding is consistent across platforms.
-    public static String readFile(String path) throws IOException{
-        byte[] bytes;
-        bytes = Files.readAllBytes(Paths.get(path));
+    public static String readFile(String path) throws IOException {
+        byte[] bytes = Files.readAllBytes(Paths.get(path));
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    private static void runPrompt() throws IOException{
+    private static void runPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
-        for( ; ; ){
+        for (;;) {
             System.out.print("> ");
             String line = reader.readLine();
-            if(line == null) break;
+            if (line == null) break;
             run(line, "repl");
             hadError = false;
         }
     }
-    
-    private static void run(String source, String fileName){
+
+    private static void run(String source, String fileName) {
         Scanner scanner = new Scanner(source, fileName);
         List<Token> tokens = scanner.scanTokens();
 
         Parser parser = new Parser(tokens);
         List<Stmt> statements = parser.parse();
 
-        if(hadError) return;
+        if (hadError) return;
 
-        System.out.println(new AstPrinter().print(statements));
+        interpreter.interpret(statements);
     }
 
-    static void error(int line, String fileName, String message){
+    static void error(int line, String fileName, String message) {
         report(line, fileName, "", message);
     }
 
-    private static void report(int line, String fileName, String where, String message){
-        System.err.println("[" + fileName + ":"+ "line " + line + "] Error" + where + ": " + message);
+    static void runtimeError(RuntimeError error) {
+        System.err.println("[" + error.token.fileName + ":line " + error.token.line + "] RuntimeError at '"
+                + error.token.lexeme + "': " + error.getMessage());
+        hadRuntimeError = true;
+    }
+
+    private static void report(int line, String fileName, String where, String message) {
+        System.err.println("[" + fileName + ":line " + line + "] Error" + where + ": " + message);
         hadError = true;
     }
 
