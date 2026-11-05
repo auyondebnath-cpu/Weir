@@ -1,4 +1,5 @@
 package com.craftinginterpreters.weir;
+
 import java.util.List;
 
 class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
@@ -6,8 +7,10 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     String print(List<Stmt> statements) {
         StringBuilder builder = new StringBuilder();
         for (Stmt stmt : statements) {
-            builder.append(stmt.accept(this));
-            builder.append("\n");
+            if (stmt != null) {
+                builder.append(stmt.accept(this));
+                builder.append("\n");
+            }
         }
         return builder.toString();
     }
@@ -35,6 +38,13 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     }
 
     @Override
+    public String visitLogicalExpr(Expr.Logical expr) {
+        String left = wrapIfNested(expr.left);
+        String right = wrapIfNested(expr.right);
+        return left + " " + expr.operator.lexeme + " " + right;
+    }
+
+    @Override
     public String visitUnaryExpr(Expr.Unary expr) {
         String operand = wrapIfNested(expr.right);
         return expr.operator.lexeme + operand;
@@ -51,26 +61,44 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return source + " flows " + expr.target.lexeme;
     }
 
-    // Wraps `child` in parens whenever it is itself a Binary or Flows
+    // Wraps `child` in parens whenever it is itself a Binary, Logical, or Flows
     // expression, regardless of precedence, so nesting/associativity is
     // always visible in the printed output. Simple leaves (Literal/Variable)
     // and already-parenthesized Grouping nodes are left unwrapped.
     private String wrapIfNested(Expr child) {
         String printed = child.accept(this);
-        if (child instanceof Expr.Binary || child instanceof Expr.Flows) {
+        if (child instanceof Expr.Binary || child instanceof Expr.Logical || child instanceof Expr.Flows) {
             return "(" + printed + ")";
         }
         return printed;
     }
 
     @Override
+    public String visitRainfallStmt(Stmt.Rainfall stmt) {
+        StringBuilder builder = new StringBuilder("rainfall ");
+        for (int i = 0; i < stmt.amounts.size(); i++) {
+            if (i > 0) builder.append(", ");
+            builder.append(stmt.amounts.get(i).literal);
+        }
+        return builder.toString();
+    }
+
+    @Override
     public String visitRootStmt(Stmt.Root stmt) {
         StringBuilder builder = new StringBuilder();
         builder.append("root ").append(stmt.name.lexeme);
-        if (stmt.first != null) {
-            builder.append(" f: ").append(stmt.first.literal);
-            builder.append(" s: ").append(stmt.spread.literal);
-            builder.append(" m: ").append(stmt.magnitude.literal);
+        if (stmt.onset != null || stmt.spread != null || stmt.catchment != null) {
+            builder.append(" {");
+            if (stmt.catchment != null) {
+                builder.append(" catchment: ").append(stmt.catchment.literal).append(";");
+            }
+            if (stmt.onset != null) {
+                builder.append(" onset: ").append(stmt.onset.literal).append(";");
+            }
+            if (stmt.spread != null) {
+                builder.append(" spread: ").append(stmt.spread.literal).append(";");
+            }
+            builder.append(" }");
         }
         return builder.toString();
     }
@@ -114,7 +142,7 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return stmt.expression.accept(this);
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) {
         Expr expression = new Expr.Binary(
             new Expr.Unary(
                 new Token(TokenType.MINUS, "-", null, 1, "test"),
