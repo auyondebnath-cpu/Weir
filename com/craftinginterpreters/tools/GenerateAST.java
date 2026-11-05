@@ -7,33 +7,35 @@ import java.util.List;
 
 public class GenerateAST {
     public static void main(String[] args) throws IOException {
-        if(args.length != 1){
+        if (args.length != 1) {
             System.err.println("Usage: generate_ast <output directory>");
             System.exit(64);
         }
         String outputDir = args[0];
 
         defineAST(outputDir, "Expr", Arrays.asList(
-            "Binary : Expr left, Token operator, Expr right",
+            "Binary   : Expr left, Token operator, Expr right",
             "Grouping : Expr expression",
-            "Literal : Object value",
-            "Unary : Token operator, Expr right",
+            "Literal  : Object value",
+            "Logical  : Expr left, Token operator, Expr right",
+            "Unary    : Token operator, Expr right",
             "Variable : Token name",
-            "Flows : Expr source, Token target"
+            "Flows    : Expr source, Token target"
         ));
 
         defineAST(outputDir, "Stmt", Arrays.asList(
-            "Root : Token name, Token first, Token spread, Token magnitude",
-            "RiverDecl : Token name, Expr value",
-            "Dam : Token name, List<Stmt> rules, Stmt defaultRule",
-            "DamRule : Expr condition, Expr result",
-            "Connect : Token source, Token target",
-            "Print : Expr expression",
+            "Rainfall   : List<Token> amounts",
+            "Root       : Token name, Token onset, Token spread, Token catchment",
+            "RiverDecl  : Token name, Expr value",
+            "Dam        : Token name, List<Stmt> rules, Stmt defaultRule",
+            "DamRule    : Expr condition, Expr result",
+            "Connect    : Token source, Token target",
+            "Print      : Expr expression",
             "Expression : Expr expression"
         ));
     }
 
-    private static void defineAST(String outputDir, String baseName, List<String> types) throws IOException{
+    private static void defineAST(String outputDir, String baseName, List<String> types) throws IOException {
         String path = outputDir + "/" + baseName + ".java";
         PrintWriter writer = new PrintWriter(path, "UTF-8");
 
@@ -45,42 +47,37 @@ public class GenerateAST {
 
         defineVisitor(writer, baseName, types);
 
-        for (String type: types){
+        for (String type : types) {
             String className = type.split(":")[0].trim();
             String fields = type.split(":")[1].trim();
             defineType(writer, baseName, className, fields);
         }
 
         writer.println();
-        writer.println("  abstract <R> R accept(Visitor<R> visitor);");        
-
+        writer.println("  abstract <R> R accept(Visitor<R> visitor);");
         writer.println("}");
         writer.close();
-
-        
     }
 
-    private static void defineType(PrintWriter writer, String baseName, String className, String fieldList){
+    private static void defineType(PrintWriter writer, String baseName, String className, String fieldList) {
         writer.println("  static class " + className + " extends " + baseName + " {");
-
         writer.println("    " + className + "(" + fieldList + ") {");
 
         String[] fields = fieldList.split(", ");
-        for(String field : fields){
+        for (String field : fields) {
             String name = field.split(" ")[1];
             writer.println("      this." + name + " = " + name + ";");
         }
 
         writer.println("    }");
-
         writer.println();
         writer.println("    @Override");
         writer.println("    <R> R accept(Visitor<R> visitor) {");
         writer.println("      return visitor.visit" + className + baseName + "(this);");
         writer.println("    }");
-
         writer.println();
-        for(String field: fields){
+
+        for (String field : fields) {
             writer.println("    final " + field + ";");
         }
 
@@ -88,10 +85,10 @@ public class GenerateAST {
         writer.println();
     }
 
-    private static void defineVisitor(PrintWriter writer, String baseName, List<String> types){
+    private static void defineVisitor(PrintWriter writer, String baseName, List<String> types) {
         writer.println("  interface Visitor<R> {");
 
-        for(String type: types){
+        for (String type : types) {
             String typeName = type.split(":")[0].trim();
             writer.println("    R visit" + typeName + baseName + "(" + typeName + " " + baseName.toLowerCase() + ");");
         }

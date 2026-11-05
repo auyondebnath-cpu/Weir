@@ -4,6 +4,7 @@ import java.util.List;
 
 abstract class Stmt {
   interface Visitor<R> {
+    R visitRainfallStmt(Rainfall stmt);
     R visitRootStmt(Root stmt);
     R visitRiverDeclStmt(RiverDecl stmt);
     R visitDamStmt(Dam stmt);
@@ -12,12 +13,25 @@ abstract class Stmt {
     R visitPrintStmt(Print stmt);
     R visitExpressionStmt(Expression stmt);
   }
+  static class Rainfall extends Stmt {
+    Rainfall(List<Token> amounts) {
+      this.amounts = amounts;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitRainfallStmt(this);
+    }
+
+    final List<Token> amounts;
+  }
+
   static class Root extends Stmt {
-    Root(Token name, Token first, Token spread, Token magnitude) {
+    Root(Token name, Token onset, Token spread, Token catchment) {
       this.name = name;
-      this.first = first;
+      this.onset = onset;
       this.spread = spread;
-      this.magnitude = magnitude;
+      this.catchment = catchment;
     }
 
     @Override
@@ -26,9 +40,9 @@ abstract class Stmt {
     }
 
     final Token name;
-    final Token first;
+    final Token onset;
     final Token spread;
-    final Token magnitude;
+    final Token catchment;
   }
 
   static class RiverDecl extends Stmt {
