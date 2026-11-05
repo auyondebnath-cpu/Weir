@@ -1,17 +1,15 @@
 package com.craftinginterpreters.weir;
 
 import java.util.List;
+import java.util.Map;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    private Environment globals = new Environment();
+    private final Environment globals = new Environment();
     private Environment environment = globals;
+    private boolean hadPrintStmt = false;
 
-    // Default multi-day rainfall schedule (in mm) if no `rainfall` statement is declared in the file.
+    // Default 10-day rainfall schedule (in mm) if no `rainfall` statement is declared.
     private double[] currentRainfall = new double[] { 10.0, 5.0, 0.0, 20.0, 5.0, 0.0, 0.0, 10.0, 5.0, 0.0 };
-
-    Interpreter() {
-        // Predefine global functions or builtins if needed
-    }
 
     void interpret(List<Stmt> statements) {
         try {
@@ -20,6 +18,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     execute(statement);
                 }
             }
+            // Output summary of all named flows and dams in the system
+            printSystemSummary();
         } catch (RuntimeError error) {
             Weir.runtimeError(error);
         }
@@ -31,6 +31,65 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     Environment getEnvironment() {
         return environment;
+    }
+
+    // Prints a clean summary of all named rivers and dams after simulation completes.
+    private void printSystemSummary() {
+        if (globals.getValues().isEmpty()) return;
+        System.out.println("\n=== Weir River System Simulation (10-Day Hydrograph) ===");
+        StringBuilder rainStr = new StringBuilder("Rainfall (mm): [");
+        for (int i = 0; i < FlowValue.DAYS; i++) {
+            if (i > 0) rainStr.append(", ");
+            double r = (i < currentRainfall.length) ? currentRainfall[i] : 0.0;
+            rainStr.append(String.format("D%d: %.1f", i + 1, r));
+        }
+        rainStr.append("]");
+        System.out.println(rainStr);
+        System.out.println("--------------------------------------------------------");
+
+        for (Map.Entry<String, Object> entry : globals.getValues().entrySet()) {
+            String name = entry.getKey();
+            Object val = entry.getValue();
+            if (val instanceof FlowValue) {
+                System.out.printf("River %-18s -> %s%n", name, val.toString());
+            } else if (val instanceof DamValue) {
+                DamValue dam = (DamValue) val;
+                System.out.printf("Dam   %-18s -> %s%n", name, dam.getCurrentOutflow().toString());
+            }
+        }
+    }
+
+    // Shared routing logic for both `a flows b;` (Stmt.Connect) and `... flows b` (Expr.Flows)
+    private FlowValue routeFlow(FlowValue upstream, Token target) {
+        // Case 1: Target is an already-declared Dam -> run the dam's day-by-day algorithm!
+        if (globals.contains(target.lexeme)) {
+            Object existing = globals.get(target);
+            if (existing instanceof DamValue) {
+                DamValue dam = (DamValue) existing;
+                return dam.apply(this, upstream, currentRainfall);
+            }
+            // Case 2: Target is an existing River -> delay upstream by 1 day and add to target
+            if (existing instanceof FlowValue) {
+                FlowValue combined = ((FlowValue) existing).add(upstream.delayByOneDay());
+                globals.define(target.lexeme, combined);
+                return combined;
+            }
+        }
+
+        // Case 3: Target is a new downstream river name (e.g. `dam1 flows queanbeyan;`)
+        FlowValue delayed = upstream.delayByOneDay();
+        globals.define(target.lexeme, delayed);
+        return delayed;
+    }
+
+    private FlowValue extractFlow(Object sourceObj, Token errorToken) {
+        if (sourceObj instanceof FlowValue) {
+            return (FlowValue) sourceObj;
+        }
+        if (sourceObj instanceof DamValue) {
+            return ((DamValue) sourceObj).getCurrentOutflow();
+        }
+        throw new RuntimeError(errorToken, "Expected a river or dam with a valid flow.");
     }
 
     // --- Expression Evaluation ---
@@ -60,7 +119,11 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        Object val = environment.get(expr.name);
+        if (val instanceof DamValue) {
+            return ((DamValue) val).getCurrentOutflow();
+        }
+        return val;
     }
 
     @Override
@@ -69,13 +132,13 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         switch (expr.operator.type) {
             case MINUS:
-                checkNumberOperand(expr.operator, right);
                 if (right instanceof Double) {
                     return -((Double) right);
                 }
                 if (right instanceof FlowValue) {
                     return ((FlowValue) right).scale(-1.0);
                 }
+                checkNumberOperand(expr.operator, right);
                 break;
             case BANG:
                 return !isTruthy(right);
@@ -95,6 +158,11 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left - (double) right;
             case SLASH:
+                if (left instanceof FlowValue && right instanceof Double) {
+                    double div = (Double) right;
+                    if (div == 0.0) throw new RuntimeError(expr.operator, "Division by zero.");
+                    return ((FlowValue) left).scale(1.0 / div);
+                }
                 checkNumberOperands(expr.operator, left, right);
                 double divisor = (double) right;
                 if (divisor == 0.0) {
@@ -102,7 +170,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 }
                 return (double) left / divisor;
             case STAR:
-                // Supports scaling a FlowValue by a number (e.g. inflow * 0.5)
                 if (left instanceof FlowValue && right instanceof Double) {
                     return ((FlowValue) left).scale((Double) right);
                 }
@@ -112,14 +179,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left * (double) right;
             case PLUS:
-                // Element-wise addition of two river flows (`river a = b + c;`)
                 if (left instanceof FlowValue && right instanceof FlowValue) {
                     return ((FlowValue) left).add((FlowValue) right);
                 }
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left + (double) right;
 
-            // Comparison operators for dam conditions (level > 100, rainfall >= 10, etc.)
             case GREATER:
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left > (double) right;
@@ -146,13 +211,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitFlowsExpr(Expr.Flows expr) {
         Object sourceVal = evaluate(expr.source);
-        if (!(sourceVal instanceof FlowValue)) {
-            throw new RuntimeError(expr.target, "Source of 'flows' must evaluate to a river or dam flow.");
-        }
-        // Downstream propagation: delay upstream flow by 1 day and register in environment.
-        FlowValue downstreamFlow = ((FlowValue) sourceVal).delayByOneDay();
-        globals.define(expr.target.lexeme, downstreamFlow);
-        return downstreamFlow;
+        FlowValue upstream = extractFlow(sourceVal, expr.target);
+        return routeFlow(upstream, expr.target);
     }
 
     // --- Statement Evaluation ---
@@ -161,7 +221,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitRainfallStmt(Stmt.Rainfall stmt) {
         double[] amounts = new double[stmt.amounts.size()];
         for (int i = 0; i < stmt.amounts.size(); i++) {
-            amounts[i] = Double.valueOf(stmt.amounts.get(i).literal.toString());
+            amounts[i] = Double.parseDouble(stmt.amounts.get(i).literal.toString());
         }
         this.currentRainfall = amounts;
         return null;
@@ -177,6 +237,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         if (stmt.spread != null) spread = ((Double) stmt.spread.literal).intValue();
         if (stmt.catchment != null) catchment = (Double) stmt.catchment.literal;
 
+        if (onset < 1 || spread < 1 || catchment < 0) {
+            throw new RuntimeError(stmt.name, "Root river require onset >= 1, spread >= 1, and catchment >= 0.");
+        }
+
         FlowValue riverFlow = FlowValue.fromRoot(currentRainfall, onset, spread, catchment);
         globals.define(stmt.name.lexeme, riverFlow);
         return null;
@@ -185,7 +249,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitRiverDeclStmt(Stmt.RiverDecl stmt) {
         Object value = evaluate(stmt.value);
-        globals.define(stmt.name.lexeme, value);
+        FlowValue flow = extractFlow(value, stmt.name);
+        globals.define(stmt.name.lexeme, flow);
         return null;
     }
 
@@ -198,23 +263,20 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitDamRuleStmt(Stmt.DamRule stmt) {
-        // Handled inside evaluateDamDay
         return null;
     }
 
     @Override
     public Void visitConnectStmt(Stmt.Connect stmt) {
-        Object sourceVal = globals.get(stmt.source);
-        if (!(sourceVal instanceof FlowValue)) {
-            throw new RuntimeError(stmt.source, "Source '" + stmt.source.lexeme + "' is not a valid river or dam flow.");
-        }
-        FlowValue delayedFlow = ((FlowValue) sourceVal).delayByOneDay();
-        globals.define(stmt.target.lexeme, delayedFlow);
+        Object sourceObj = globals.get(stmt.source);
+        FlowValue upstream = extractFlow(sourceObj, stmt.source);
+        routeFlow(upstream, stmt.target);
         return null;
     }
 
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
+        hadPrintStmt = true;
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
         return null;
@@ -232,7 +294,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Environment previous = this.environment;
         try {
             this.environment = damEnv;
-            // Iterate through `when` rules in order; first matching rule determines output.
             for (Stmt ruleStmt : damDecl.rules) {
                 Stmt.DamRule rule = (Stmt.DamRule) ruleStmt;
                 if (rule.condition != null) {
@@ -245,7 +306,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     }
                 }
             }
-            // Fall back to default rule if no `when` condition matches.
             if (damDecl.defaultRule != null) {
                 Stmt.DamRule defRule = (Stmt.DamRule) damDecl.defaultRule;
                 Object resultVal = evaluate(defRule.result);
