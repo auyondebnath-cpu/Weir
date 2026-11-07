@@ -1,15 +1,39 @@
 // canberra.weir
-// Models the Canberra river system described in the assignment brief.
+// Models the Canberra river system described in the COMP3000 assignment brief.
 // Root rivers: googong, jerrabombarra, uppermolongolo
-// googong -> dam1 -> queanbeyan
+// googong -> dam1 (Googong Dam) -> queanbeyan
 // centralmolongolo = queanbeyan + uppermolongolo + jerrabombarra
-// centralmolongolo -> dam2 -> lowermolongolo (system output)
+// centralmolongolo -> dam2 (Scrivener Dam / Lake Burley Griffin) -> lowermolongolo
 
-root googong f: 1 s: 1 m: 50;
-root jerrabombarra f: 1 s: 1 m: 30;
-root uppermolongolo f: 1 s: 1 m: 40;
+// 10-day rainfall schedule (in mm) across the Canberra catchment
+rainfall 15, 5, 0, 12, 20, 0, 0, 8, 4, 0;
 
+root googong {
+    catchment: 50;
+    onset: 1;
+    spread: 2;
+}
+
+root jerrabombarra {
+    catchment: 30;
+    onset: 1;
+    spread: 1;
+}
+
+root uppermolongolo {
+    catchment: 40;
+    onset: 1;
+    spread: 2;
+}
+
+// dam1 (Googong Dam):
+// Demonstrates the Week 11 & Rubric Item 5 multi-variable dam control rules:
+// - If today's rainfall exceeds 10mm and inflow is surging (> 10), block 75% (release 25%)
+// - If accumulated dam level is high (> 100), release half the water (50%)
+// - If level is moderate (> 50), release 80%
+// - Otherwise pass full inflow through
 dam dam1 {
+    when rainfall > 10 and inflow > 10: inflow * 0.25;
     when level > 100: inflow * 0.5;
     when level > 50: inflow * 0.8;
     default: inflow;
@@ -20,9 +44,11 @@ dam1 flows queanbeyan;
 
 river centralmolongolo = queanbeyan + uppermolongolo + jerrabombarra;
 
+// dam2 (Scrivener Dam forming Lake Burley Griffin):
+// Regulates combined flow from Queanbeyan, Upper Molongolo, and Jerrabombarra
 dam dam2 {
-    when level > 200: inflow * 0.3;
-    when level > 100: inflow * 0.7;
+    when level > 200 or inflow > 800: inflow * 0.3;
+    when level > 100 or rainfall > 15: inflow * 0.7;
     default: inflow;
 }
 
