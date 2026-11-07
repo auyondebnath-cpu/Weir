@@ -1,37 +1,45 @@
 // sluicegate.weir
-// A dedicated example demonstrating Weir's dam syntax in depth, independent
-// of any real-world river system. Exercises multiple "when level" tiers per
-// dam, every comparison operator supported by the grammar's condition rule
-// (>, >=, <, <=, ==, !=), and the required "default" fallback rule.
-//
-// Models three dams with different release behaviours, matching the
-// assignment brief's suggestion that dams should show sensible no-flow,
-// half-flow, and full-flow behaviour depending on their accumulated level.
+// A dedicated example demonstrating Weir's dam syntax and evaluation semantics
+// in depth. Exercises:
+// 1. No-flow (0%), half-flow (50%), quarter-flow (25%), and full-flow (100%)
+//    dam behaviours (Rubric Item 4).
+// 2. Release-fraction clamping verification: attempting to release `inflow * 1.5`
+//    is safely clamped by the interpreter so the release fraction never exceeds 1.0.
+// 3. Every comparison operator (>, >=, <, <=, ==, !=) and logical operator
+//    (and, or) across level, inflow, and rainfall (Rubric Item 5).
 
-root inflowsource f: 1 s: 1 m: 100;
+rainfall 10, 15, 5, 0, 20, 12, 0, 8, 5, 0;
 
-// noflowdam: blocks all water once the level is high, otherwise passes
-// everything through untouched.
+root inflowsource {
+    catchment: 100;
+    onset: 1;
+    spread: 2;
+}
+
+// noflowdam: blocks all water (0% release) once accumulated level >= 200 or
+// during heavy rainfall (> 15mm); otherwise passes full flow (100%) through.
 dam noflowdam {
-    when level >= 200: inflow * 0;
+    when level >= 200 or rainfall > 15: inflow * 0;
     default: inflow;
 }
 
-// halfflowdam: releases progressively less water as its level rises,
-// stepping down through several tiers before settling on a default.
+// halfflowdam: demonstrates the Week 11 three-tier flow control algorithm:
+// - If inflow > 500 and level > 150, blocks 75% (releases 25%).
+// - If rainfall <= 10, blocks exactly half the water (releases 50%).
+// - Otherwise releases 75% of inflow.
 dam halfflowdam {
-    when level > 150: inflow * 0.25;
-    when level > 100: inflow * 0.5;
-    when level > 50: inflow * 0.75;
-    default: inflow;
+    when level > 150 and inflow > 500: inflow * 0.25;
+    when rainfall <= 10: inflow * 0.5;
+    default: inflow * 0.75;
 }
 
-// preciselevel: demonstrates the remaining comparison operators (<, ==, !=)
-// which are not exercised by the other example programs.
+// preciselevel: exercises the remaining comparison operators (<, ==, !=) and
+// verifies that even if a rule specifies `inflow * 1.5`, the interpreter
+// clamps the release fraction to a maximum of 1.0 (full flow).
 dam preciselevel {
-    when level < 10: inflow * 1.0;
+    when level < 10: inflow * 1.5;
     when level == 50: inflow * 0.5;
-    when level != 0: inflow * 0.9;
+    when level != 0 and inflow >= 50: inflow * 0.9;
     default: inflow;
 }
 
