@@ -7,20 +7,54 @@
 // Brisbane River in its middle and lower reaches before reaching Moreton Bay.
 //
 // Root rivers: cooyar, emu, cressbrook, stanleyriver, lockyercreek, bremerriver
-// stanleyriver -> somersetdam -> (joins upper Brisbane combination)
-// upperbrisbane = cooyar + emu + cressbrook + somerset dam output
+// stanleyriver -> somersetdam -> upperstanley
+// upperbrisbane = cooyar + emu + cressbrook + upperstanley
 // upperbrisbane -> wivenhoedam -> midbrisbane
-// midbrisbane + lockyercreek + bremerriver = lowerbrisbane (system output)
+// lowerbrisbane = midbrisbane + lockyercreek + bremerriver (system output)
 
-root cooyar f: 1 s: 2 m: 20;
-root emu f: 1 s: 2 m: 15;
-root cressbrook f: 1 s: 2 m: 18;
-root stanleyriver f: 1 s: 3 m: 35;
-root lockyercreek f: 2 s: 2 m: 12;
-root bremerriver f: 2 s: 3 m: 25;
+// 10-day rainfall schedule (in mm) across the Brisbane catchment
+rainfall 12, 8, 0, 25, 10, 0, 0, 15, 5, 0;
 
+root cooyar {
+    catchment: 20;
+    onset: 1;
+    spread: 2;
+}
+
+root emu {
+    catchment: 15;
+    onset: 1;
+    spread: 2;
+}
+
+root cressbrook {
+    catchment: 18;
+    onset: 1;
+    spread: 2;
+}
+
+root stanleyriver {
+    catchment: 35;
+    onset: 1;
+    spread: 3;
+}
+
+root lockyercreek {
+    catchment: 12;
+    onset: 2;
+    spread: 2;
+}
+
+root bremerriver {
+    catchment: 25;
+    onset: 2;
+    spread: 3;
+}
+
+// Somerset Dam adjusts outflow using accumulated level, today's rainfall, and inflow
 dam somersetdam {
-    when level > 150: inflow * 0.4;
+    when level > 150 or rainfall > 20: inflow * 0.4;
+    when level > 80 and inflow > 100: inflow * 0.6;
     when level > 80: inflow * 0.75;
     default: inflow;
 }
@@ -30,10 +64,11 @@ somersetdam flows upperstanley;
 
 river upperbrisbane = cooyar + emu + cressbrook + upperstanley;
 
+// Wivenhoe Dam mitigates downstream flooding based on level and incoming flood surges
 dam wivenhoedam {
-    when level > 300: inflow * 0.2;
-    when level > 200: inflow * 0.6;
-    when level > 100: inflow * 0.9;
+    when level > 300 and rainfall > 10: inflow * 0.2;
+    when level > 200 or inflow > 500: inflow * 0.5;
+    when level > 100: inflow * 0.85;
     default: inflow;
 }
 
